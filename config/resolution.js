@@ -7,9 +7,9 @@ const { lstatSync, readdirSync } = fs;
 const isDirectory = itemPath => lstatSync(itemPath).isDirectory();
 const getDirectoryContents = directoryToSearch => readdirSync(directoryToSearch).map(name => resolve(directoryToSearch, name));
 
-function generateEntryPaths(libraryFolders=['components']) {
+function generateEntryPaths(libraryFolders=['components'], directItems={}) {
   const libPath = resolve(__dirname, '..', 'src', 'lib');
-  const entryFilePaths = {};
+  let entryFilePaths = {};
   libraryFolders.forEach((libraryFolder) => {
     const pathToFolder = resolve(libPath, libraryFolder);
     // console.log({ pathToFolder });
@@ -34,11 +34,11 @@ function generateEntryPaths(libraryFolders=['components']) {
       }
     });
   });
-  console.log({ entryFilePaths });
+  entryFilePaths = { ...entryFilePaths, ...directItems };
   return entryFilePaths;
 }
 
-function generateOutputNameJS(containingFolder, chunkData, directItems=[]) {
+function generateOutputNameJS(containingFolder, chunkData, directItems={}) {
   // console.log({
   //   chunkData,
   //   // 'chunkData.chunk._modules': chunkData.chunk._modules,
@@ -46,7 +46,12 @@ function generateOutputNameJS(containingFolder, chunkData, directItems=[]) {
   //   // 'chunkData.chunk._modules': chunkData.chunk._modules, chunkData,
   // });
   // return '[name].js';
-  if (directItems.indexOf(chunkData.chunk.name) !== -1) {
+  // if (directItems.indexOf(chunkData.chunk.name) !== -1) {
+  //   return '[name].js';
+  // }
+  // console.log({ chunkData, directItems });
+  if (directItems[chunkData.chunk.name]) {
+    // console.log({ 'name': chunkData.chunk.name });
     return '[name].js';
   }
   return `${containingFolder}/[name].js`;
@@ -60,13 +65,29 @@ function generateOutputNameJS(containingFolder, chunkData, directItems=[]) {
   // return `${containingFolder}/${moduleFolder}.js`;
 }
 
-function generateOutputNameCSS(containingFolder, chunkData, directItems=[]) {
-  const pathOfImportingModule = chunkData.entryModule._identifier.split(' ')[0];
-  const importingModulePathSplit = pathOfImportingModule.split(path.sep)
+function getImportingModulePath(chunkData) {
+  const { entryModule: { _identifier, request } } = chunkData;
+  if (_identifier) {
+    return _identifier.split(' ')[0];
+  } else {
+    return request;
+  }
+}
+
+function generateOutputNameCSS(containingFolder, chunkData, directItems={}) {
+  const pathOfImportingModule = getImportingModulePath(chunkData);
+  const importingModulePathSplit = pathOfImportingModule.split(path.sep);
   const importingModulePathSplitLength = importingModulePathSplit.length;
   const importingFileName = importingModulePathSplit[importingModulePathSplitLength - 1].split('.')[0];
-  console.log({ 'chunkData.entryModule._identifier': chunkData.entryModule._identifier, chunkData, pathOfImportingModule, importingFileName });
-  if (directItems.indexOf(importingFileName) !== -1) {
+  // console.log({ 'chunkData.entryModule._identifier': chunkData.entryModule._identifier, chunkData, pathOfImportingModule, importingFileName });
+  // if (directItems.indexOf(importingFileName) !== -1) {
+  //   return `${importingFileName}.css`;
+  // }
+  // if (directItems.indexOf(pathOfImportingModule) !== -1) {
+  //   return `${importingFileName}.css`;
+  // }
+  // if ()
+  if (directItems[importingFileName]) {
     return `${importingFileName}.css`;
   }
   if (importingFileName === 'index') {
